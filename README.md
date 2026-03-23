@@ -4,7 +4,7 @@ This repository contains lab session materials (code) for the SNU Reinforcement 
 
 ---
 ## Materials
-Download slides from here: [Google Drive Link](https://drive.google.com/drive/folders/1MszHErtjOB1yrbHIbXdS5S410WMdZMG4?usp=drive_link)
+Download slides from here: [Google Drive Link](https://drive.google.com/drive/folders/1_5_LwYWTPU9xn7svZ7Xw8FTMxDwIJhhB?usp=sharing)
 
 ## 🛠️ Installation
 
