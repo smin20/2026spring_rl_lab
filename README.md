@@ -10,7 +10,7 @@ Download slides from here: [Google Drive Link](https://drive.google.com/drive/fo
 
 ```bash
 # clone the repository
-git clone https://github.com/SNU-IntelligentMotionLab/2025Fall_RL_Lab.git
+git clone https://github.com/SNU-IntelligentMotionLab/2026Spring_RL_Lab.git
 
 # create and activate a virtual environment
 python3 -m venv lab_env
