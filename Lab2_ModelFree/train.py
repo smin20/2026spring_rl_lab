@@ -18,6 +18,7 @@ def main():
                         choices=["mf_pred", "mc", "sarsa", "q_learning"],
                         help="Choose algorithm: mf_pred for model free prediction, or mc, sarsa, q_learning for control.")
     parser.add_argument('--map_size', type=int, default=6)
+    parser.add_argument('--map', type=str, default=None, help="Map to run.")
     parser.add_argument('--save_name', type=str, default=None,
                         help="Filename of saving policy to pkl file")
     parser.add_argument('--render', action='store_true', help="Render environment during training")
@@ -34,7 +35,7 @@ def main():
 
     args = parser.parse_args()
 
-    map_name = f"map_{args.map_size}.json"
+    map_name = args.map if args.map else f"map_{args.map_size}.json"
     env = GridWorldEnv(width=args.map_size, height=args.map_size, map_file=map_name)
 
     print(f"=== Running {args.algo.upper()} ===")
