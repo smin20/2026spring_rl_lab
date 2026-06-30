@@ -4,7 +4,7 @@ import os
 
 
 TRAINER_MAP = {
-    'deepsarsa': 'DeepSARSATrainer',
+    'dqn': 'DQNTrainer',
 }
 
 
@@ -14,7 +14,7 @@ def main():
         '--algo',
         choices=list(TRAINER_MAP.keys()),
         required=True,
-        help='Choose algorithm to run. Choices: [deepsarsa]',
+        help='Choose algorithm to run. Choices: [dqn]',
     )
     parser.add_argument('--map', type=str, default='map1', help='Map to run. Choices: [map0, map1, map2, map3]')
     parser.add_argument('--save_name', type=str, default='example', help='Filename of saving policy to pth file')

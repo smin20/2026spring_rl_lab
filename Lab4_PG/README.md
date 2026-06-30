@@ -5,7 +5,8 @@ Implemented algorithm:
 
 - **REINFORCE**
 
-The previous value-based deep RL material is now separated into `Lab3_DeepValueRL`.
+The previous value-based deep RL material is split into `Lab3_DeepValueRL`
+for Deep SARSA and `Lab5_DQN` for DQN.
 
 ### Continuous-Action GridWorld
 

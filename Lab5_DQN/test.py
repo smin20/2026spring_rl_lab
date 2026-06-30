@@ -4,7 +4,7 @@ import os
 
 
 AGENT_MAP = {
-    'deepsarsa': 'DeepSARSAAgent',
+    'dqn': 'DQNAgent',
 }
 
 

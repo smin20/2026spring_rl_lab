@@ -1,9 +1,10 @@
-## Lab 3. Deep Value-Based Reinforcement Learning
-This provides an introduction to value-based deep reinforcement learning with function approximation.
-Implemented algorithms include:
+## Lab 3. Deep SARSA
+
+This lab introduces value-based deep reinforcement learning with function
+approximation.
+Implemented algorithm:
 
 - **Deep SARSA**
-- **DQN**
 
 ### Continuous GridWorld Environment
 
@@ -28,9 +29,9 @@ To train an RL agent, run the `train.py` script with the desired algorithm and o
 python train.py --algo {ALGORITHM} [--save_name SAVE_NAME] [--map MAP_NAME] [--render]
 ```
 **Arguments**
-- --algo (str, required): Choose the learning algorithm (Deep SARSA, DQN)
-	- Options: deepsarsa, dqn
-- --map (str, optional): Select GridWorld Map (Choice: map0, map1, map2, map3). Default is map2.
+- --algo (str, required): Choose the learning algorithm (Deep SARSA)
+	- Options: deepsarsa
+- --map (str, optional): Select GridWorld Map (Choice: map0, map1, map2, map3). Default is map1.
 - --save_name (str): Filename to save the policy and the plots.
 - --render (action flag): If specified, render the agent's behavior during training.
 - --logdir (str, optional): Directory to save tensorboard log files. Default is `runs`.
@@ -65,9 +66,9 @@ You can visualize a learned policy using the `test.py` script:
 python test.py --algo {ALGORITHM} [--save_name SAVE_NAME] [--iter ITER]
 ```
 **Arguments**
-- --algo (str, required): Choose the learning algorithm (Deep SARSA, DQN)
-	- Options: deepsarsa, dqn
-- --map (str, optional): Select GridWorld Map (Choice: map0, map1, map2, map3). Default is map2.
+- --algo (str, required): Choose the learning algorithm (Deep SARSA)
+	- Options: deepsarsa
+- --map (str, optional): Select GridWorld Map (Choice: map0, map1, map2, map3). Default is map1.
 - --save_name (str): Filename to load the policy saved as `checkpoints/{args.algo}_{args.save_name}.pth`
 - --step-size (float): Movement length used by the environment. Use the same value as training.
 - --iter (int): Number of iterations to test. Default is 10.
@@ -81,11 +82,4 @@ This will render the agent's behavior following the trained policy in the GridWo
 python train.py --algo deepsarsa
 # test
 python test.py --algo deepsarsa
-```
-#### DQN
-```bash
-# train
-python train.py --algo dqn
-# test
-python test.py --algo dqn
 ```

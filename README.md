@@ -44,8 +44,9 @@ Current labs:
 
 - `Lab1_DP`: Dynamic Programming
 - `Lab2_ModelFree`: Monte Carlo, SARSA, and Q-Learning
-- `Lab3_DeepValueRL`: Deep SARSA and DQN
+- `Lab3_DeepValueRL`: Deep SARSA
 - `Lab4_PG`: REINFORCE
+- `Lab5_DQN`: DQN
 
 TensorBoard is used in the deep RL labs for reward/loss visualization and is
 included in `requirements.txt`.
