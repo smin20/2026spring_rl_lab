@@ -55,10 +55,10 @@ python train.py --algo ddpg
 - --seed (int, optional): Seed for training. Default is 42.
 
 **Parameter Arguments**
-- --episodes (int) Number of episodes. Default is 500.
+- --episodes (int) Number of episodes. Default is 1000.
 - --max-steps (int) Number of maximum step per episode. Default is 100.
-- --step-size (float) Movement length for each discrete action. Default is 0.2.
-- --heatmap-interval (int) Episode interval for heatmap and policy plots. Default is 500.
+- --step-size (float) Movement length in meters. Defaults are dqn=0.2 and ddpg=1.0.
+- --heatmap-interval (int) Episode interval for heatmap and policy plots. Default is 100.
 - --resolution (float) Grid resolution for heatmap and policy plots. Default is 0.1.
 
 ### TensorBoard
@@ -80,14 +80,26 @@ epsilon.
 
 ### DDPG Skeleton TODOs
 
-Students should focus on the algorithmic pieces:
+Students should focus on the algorithmic pieces. The TODO hints point back to
+Deep SARSA, DQN, and REINFORCE patterns without giving copy-paste solutions:
 
-1. `ActorNetwork.forward`: map state to continuous action with `tanh`.
+1. `ActorNetwork.forward`: map a state to one deterministic continuous action.
+   - Look back at REINFORCE's policy network shape.
+   - Difference: DDPG returns an action directly, not a distribution.
 2. `CriticNetwork.forward`: evaluate `Q(s, a)` from state-action pairs.
-3. `ReplayBuffer.sample`: store continuous actions as float vectors.
-4. `DDPGAgent.select_action`: add Gaussian exploration noise and clip actions.
-5. `DDPGAgent.learn`: implement critic target, critic update, and actor update.
-6. `DDPGAgent._soft_update`: update target actor and target critic with `tau`.
+   - Look back at Deep SARSA's Q-network.
+   - Difference: the action is part of the input vector, not an index.
+3. `DDPGAgent.select_action`: use the actor, add exploration noise, and keep actions valid.
+   - Look back at REINFORCE for continuous actions.
+   - Look back at DQN/Deep SARSA for the exploration-vs-evaluation split.
+4. `DDPGAgent.learn` and `_soft_update`: implement the DDPG update.
+   - The critic target is the TD target idea from Deep SARSA/DQN.
+   - The critic update is the same loss/optimizer pattern as Deep SARSA/DQN.
+   - The actor update maximizes the critic's value estimate for actor-chosen actions.
+   - The soft update is DQN's target-network idea, but blended gradually with `tau`.
+
+The replay buffer, warmup exploration, noise decay, save/load, logging, and
+trainer loop are provided so the TODOs stay focused on the DDPG algorithm.
 
 ### Rendering a Trained Policy
 

@@ -14,9 +14,17 @@ def main():
     parser.add_argument('--algo', choices=list(AGENT_MAP.keys()), required=True)
     parser.add_argument('--save_name', type=str, default='example', help='Filename of saved policy pth file')
     parser.add_argument('--map', type=str, default='map1')
-    parser.add_argument('--step-size', type=float, default=1.0)
+    parser.add_argument(
+        '--step-size',
+        type=float,
+        default=None,
+        help='Movement length in meters. Defaults: dqn=0.2, ddpg=1.0',
+    )
     parser.add_argument('--iter', type=int, default=10)
     args = parser.parse_args()
+
+    if args.step_size is None:
+        args.step_size = 1.0 if args.algo == 'ddpg' else 0.2
 
     from env.gridworld_c1 import GridWorldEnv_c1
     from env.gridworld_c2 import GridWorldEnv_c2

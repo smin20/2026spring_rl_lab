@@ -33,10 +33,11 @@ class ActorNetwork(nn.Module):
         )
 
     def forward(self, state):
-        ########## TODO 1: IMPLEMENT THE ACTOR FORWARD PASS ##########
-        # DDPG uses a deterministic actor mu(s).
-        # Return an action vector in [-1, 1]^2.
-        # Think about which activation function bounds real values to this range.
+        ########## TODO 1: Actor forward pass ##########
+        # Hint:
+        # - This is like REINFORCE's policy forward pass, but deterministic.
+        # - The actor should return one action vector directly, not mean/std.
+        # - The continuous environment expects each action component in [-1, 1].
         raise NotImplementedError("TODO 1: implement ActorNetwork.forward")
         ########## END TODO 1 ##########
 
@@ -60,11 +61,11 @@ class CriticNetwork(nn.Module):
         )
 
     def forward(self, state, action):
-        ########## TODO 2: IMPLEMENT THE CRITIC FORWARD PASS ##########
-        # Unlike DQN, the critic cannot output one value per discrete action.
-        # It receives the action chosen by the actor and evaluates Q(s, a).
-        # The network input should contain both the state information and the
-        # continuous action information for the same batch.
+        ########## TODO 2: Critic forward pass ##########
+        # Hint:
+        # - Deep SARSA estimates Q from a state and a discrete action index.
+        # - DDPG estimates Q(s, a) from a state vector and a continuous action vector.
+        # - Build one feature tensor from state and action, then pass it to self.net.
         raise NotImplementedError("TODO 2: implement CriticNetwork.forward")
         ########## END TODO 2 ##########
 
@@ -86,14 +87,7 @@ class ReplayBuffer:
         rewards_np = np.array(rewards, dtype=np.float32)[:, None]
         dones_np = np.array(dones, dtype=np.float32)[:, None]
 
-        ########## TODO 3: STORE CONTINUOUS ACTIONS AS FLOAT VECTORS ##########
-        # DQN stores actions as int64 indices for gather().
-        # DDPG stores actions as float32 vectors because the critic uses Q(s, a).
-        # The returned tensor should have shape (batch_size, action_dim).
-        actions_np = None
-        if actions_np is None:
-            raise NotImplementedError("TODO 3: convert actions to a float32 array")
-        ########## END TODO 3 ##########
+        actions_np = np.asarray(actions, dtype=np.float32)
 
         return (
             torch.from_numpy(states_np),
@@ -139,12 +133,13 @@ class DDPGAgent:
         self,
         env: GridWorldEnv_c2,
         actor_lr: float = 1e-4,
-        critic_lr: float = 1e-3,
-        gamma: float = 0.995,
-        tau: float = 0.005,
-        noise_std: float = 0.2,
+        critic_lr: float = 3e-4,
+        gamma: float = 0.99,
+        tau: float = 0.01,
+        noise_std: float = 1.0,
         noise_decay: float = 0.9995,
         noise_min: float = 0.05,
+        warmup_steps: int = 2000,
         buffer_size: int = 100000,
         batch_size: int = 64,
         device: torch.device = None,
@@ -156,7 +151,10 @@ class DDPGAgent:
         self.noise_std = noise_std
         self.noise_decay = noise_decay
         self.noise_min = noise_min
+        self.warmup_steps = warmup_steps
+        self.total_steps = 0
         self.batch_size = batch_size
+        self.action_dim = 2
 
         self.state_scale = np.array([env.height, env.width], dtype=np.float32)
         self.reward_scale = 1.0
@@ -173,25 +171,24 @@ class DDPGAgent:
         self.memory = ReplayBuffer(buffer_size)
 
     def select_action(self, state, eval=False):
+        if not eval:
+            self.total_steps += 1
+            if self.total_steps <= self.warmup_steps:
+                return np.random.uniform(-1.0, 1.0, size=self.action_dim).astype(np.float32)
+
         state_norm = np.array(state, dtype=np.float32) / self.state_scale
         state_v = torch.tensor(state_norm, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-        with torch.no_grad():
-            action = self.actor(state_v).cpu().numpy()[0]
-
-        ########## TODO 4: ADD EXPLORATION NOISE DURING TRAINING ##########
-        # DQN explores with epsilon-greedy because actions are discrete.
-        # DDPG explores by adding noise directly to the continuous action.
-        # Add zero-mean Gaussian noise only during training, then keep the final
-        # action inside the environment's valid action range.
-        if not eval:
-            noise = None
-            if noise is None:
-                raise NotImplementedError("TODO 4: add action noise for exploration")
-            action = action + noise
-        ########## END TODO 4 ##########
-
-        return np.clip(action, -1.0, 1.0)
+        action = None
+        ########## TODO 3: Select a continuous action ##########
+        # Hint:
+        # - Use the actor without tracking gradients, just as inference uses no gradients.
+        # - In training mode, add zero-mean Gaussian exploration noise.
+        # - Return a NumPy action clipped to the environment action range.
+        ########## END TODO 3 ##########
+        if action is None:
+            raise NotImplementedError("TODO 3: implement DDPG action selection")
+        return action
 
     def learn(self, state, action, reward, next_state, done=False):
         state_norm = np.array(state, dtype=np.float32) / self.state_scale
@@ -210,46 +207,41 @@ class DDPGAgent:
         next_states = next_states.to(self.device)
         dones = dones.to(self.device)
 
-        ########## TODO 5A: BUILD THE DDPG TARGET FOR THE CRITIC ##########
-        # Target:
-        #   y = r + gamma * (1 - done) * Q_target(s', mu_target(s'))
-        # Use both target networks here, and make sure gradients do not flow
-        # through the target value.
-        with torch.no_grad():
-            target_q = None
+        target_q = None
+        ########## TODO 4A: Build the critic target ##########
+        # Hint:
+        # - This is the off-policy TD target, similar in spirit to Deep SARSA/DQN.
+        # - Use target networks for the next-state action and next-state value.
+        # - Terminal transitions should not bootstrap from the next state.
+        ########## END TODO 4A ##########
         if target_q is None:
-            raise NotImplementedError("TODO 5A: compute target_q")
-        ########## END TODO 5A ##########
+            raise NotImplementedError("TODO 4A: compute the critic target")
 
-        ########## TODO 5B: UPDATE THE CRITIC NETWORK ##########
-        # Critic loss:
-        #   MSE(Q(s, a), target_q)
-        # Compare the critic's current estimate with the bootstrapped target,
-        # then run the critic optimizer step.
         critic_loss = None
+        ########## TODO 4B: Update the critic ##########
+        # Hint:
+        # - Compare the critic's current Q estimate with target_q.
+        # - Use the same optimizer pattern as Deep SARSA and DQN:
+        #   zero gradients, backpropagate loss, then step the optimizer.
+        ########## END TODO 4B ##########
         if critic_loss is None:
-            raise NotImplementedError("TODO 5B: compute and optimize critic_loss")
-        ########## END TODO 5B ##########
+            raise NotImplementedError("TODO 4B: update the critic")
 
-        ########## TODO 5C: UPDATE THE ACTOR NETWORK ##########
-        # Actor objective:
-        #   maximize Q(s, mu(s))
-        #
-        # Optimizers minimize, so convert the maximization objective into a
-        # loss with the opposite sign, then run the actor optimizer step.
         actor_loss = None
+        ########## TODO 4C: Update the actor ##########
+        # Hint:
+        # - The actor should choose actions that the critic scores highly.
+        # - Optimizers minimize losses, so convert "maximize Q" into a loss.
+        # - Use the current actor and current critic, not the target networks.
+        ########## END TODO 4C ##########
         if actor_loss is None:
-            raise NotImplementedError("TODO 5C: compute and optimize actor_loss")
-        ########## END TODO 5C ##########
+            raise NotImplementedError("TODO 4C: update the actor")
 
-        ########## TODO 6: SOFT-UPDATE BOTH TARGET NETWORKS ##########
-        # After each gradient update:
-        #   target <- tau * online + (1 - tau) * target
         self._soft_update(self.target_actor, self.actor)
         self._soft_update(self.target_critic, self.critic)
-        ########## END TODO 6 ##########
 
-        self.noise_std = max(self.noise_min, self.noise_std * self.noise_decay)
+        if self.total_steps > self.warmup_steps:
+            self.noise_std = max(self.noise_min, self.noise_std * self.noise_decay)
 
         return {
             "critic_loss": float(critic_loss.item()),
@@ -257,12 +249,13 @@ class DDPGAgent:
         }
 
     def _soft_update(self, target_net, source_net):
-        for target_param, source_param in zip(target_net.parameters(), source_net.parameters()):
-            ########## TODO 6: IMPLEMENT SOFT TARGET UPDATE ##########
-            # Move each target parameter a small fraction tau toward the matching
-            # online parameter.
-            raise NotImplementedError("TODO 6: implement soft target update")
-            ########## END TODO 6 ##########
+        ########## TODO 4D: Soft-update a target network ##########
+        # Hint:
+        # - DQN copied the full online network into the target network sometimes.
+        # - DDPG moves the target network a small fraction toward the online network.
+        # - Math form: target <- (1 - tau) * target + tau * source.
+        raise NotImplementedError("TODO 4D: implement soft target-network update")
+        ########## END TODO 4D ##########
 
     def reset_episode(self):
         pass
@@ -326,7 +319,8 @@ class DDPGTrainer:
                 next_state, reward, done, _ = self.env.step(action)
                 total_reward += reward
 
-                losses = self.agent.learn(state, action, reward, next_state, done=done)
+                terminal = done or (t == self.args.max_steps - 1)
+                losses = self.agent.learn(state, action, reward, next_state, done=terminal)
                 if losses is not None:
                     self.writer.add_scalar("Loss/Critic", losses["critic_loss"], ep)
                     self.writer.add_scalar("Loss/Actor", losses["actor_loss"], ep)

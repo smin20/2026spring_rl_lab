@@ -21,14 +21,22 @@ def main():
     parser.add_argument('--save_name', type=str, default='example', help='Filename of saving policy to pth file')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--logdir', type=str, default='runs')
-    parser.add_argument('--step-size', type=float, default=0.2, help='Movement length in meters for each discrete action')
+    parser.add_argument(
+        '--step-size',
+        type=float,
+        default=None,
+        help='Movement length in meters. Defaults: dqn=0.2, ddpg=1.0',
+    )
 
-    parser.add_argument('--episodes', type=int, default=500)
+    parser.add_argument('--episodes', type=int, default=1000)
     parser.add_argument('--max-steps', type=int, default=100)
-    parser.add_argument('--heatmap-interval', type=int, default=500)
+    parser.add_argument('--heatmap-interval', type=int, default=100)
     parser.add_argument('--resolution', type=float, default=0.1)
     parser.add_argument('--seed', type=int, default=42)
     args = parser.parse_args()
+
+    if args.step_size is None:
+        args.step_size = 1.0 if args.algo == 'ddpg' else 0.2
 
     os.makedirs(args.logdir, exist_ok=True)
 
