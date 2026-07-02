@@ -5,6 +5,7 @@ import os
 
 AGENT_MAP = {
     'dqn': 'DQNAgent',
+    'ddpg': 'DDPGAgent',
 }
 
 
@@ -18,13 +19,17 @@ def main():
     args = parser.parse_args()
 
     from env.gridworld_c1 import GridWorldEnv_c1
+    from env.gridworld_c2 import GridWorldEnv_c2
 
     config_path = os.path.join('configs', f'{args.map}.yaml')
 
     mod = importlib.import_module(f'algos.{args.algo}')
     agent_class = getattr(mod, AGENT_MAP[args.algo])
 
-    env = GridWorldEnv_c1(config_path, step_size_m=args.step_size)
+    if args.algo == 'ddpg':
+        env = GridWorldEnv_c2(config_path, step_size_m=args.step_size)
+    else:
+        env = GridWorldEnv_c1(config_path, step_size_m=args.step_size)
     agent = agent_class(env)
     agent.load(os.path.join('checkpoints', f'{args.algo}_{args.save_name}.pth'))
 

@@ -91,3 +91,59 @@ def plot_discrete_policy(writer, env, qvals, xs, ys, map_img, height, width, ep,
     ax.set_ylabel('y')
     writer.add_figure('PolicyArrows', fig, global_step=ep)
     plt.close(fig)
+
+
+def plot_continuous_policy(writer, env, agent, map_img, height, width, resolution, ep, step=3):
+    xs = np.arange(resolution / 2, width, resolution)
+    ys = np.arange(resolution / 2, height, resolution)
+    grid_states = np.stack([[y, x] for y in ys for x in xs], axis=0).astype(np.float32)
+
+    state_scale = np.array([env.height, env.width], dtype=np.float32)
+    grid_states_norm = grid_states / state_scale
+    state_tensor = torch.tensor(grid_states_norm, dtype=torch.float32, device=agent.device)
+
+    with torch.no_grad():
+        actions = agent.actor(state_tensor)
+
+    actions = actions.cpu().numpy().reshape(len(ys), len(xs), 2)
+    actions = np.clip(actions, -1.0, 1.0)
+
+    norms = np.linalg.norm(actions, axis=2)
+    dirs = np.zeros_like(actions)
+    mask = norms > 1e-6
+    dirs[mask] = actions[mask] / norms[mask][..., None]
+
+    x_grid, y_grid = np.meshgrid(xs, ys)
+    sampled_x = x_grid[::step, ::step]
+    sampled_y = y_grid[::step, ::step]
+    sampled_dirs = dirs[::step, ::step]
+    sampled_norms = norms[::step, ::step]
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(map_img, origin='upper', extent=[0, width, height, 0], alpha=0.6, zorder=0)
+
+    for (i, j), norm in np.ndenumerate(sampled_norms):
+        x = sampled_x[i, j]
+        y = sampled_y[i, j]
+        dy, dx = sampled_dirs[i, j]
+        length = norm * 0.1
+        ax.arrow(
+            x,
+            y,
+            dx * length,
+            dy * length,
+            head_width=length * 0.7,
+            head_length=length * 0.5,
+            fc='blue',
+            ec='blue',
+            width=0.007,
+        )
+
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.set_aspect('equal')
+    ax.set_title('PolicyArrows')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    writer.add_figure('PolicyArrows', fig, global_step=ep)
+    plt.close(fig)
