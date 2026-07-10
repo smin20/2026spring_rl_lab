@@ -8,17 +8,18 @@ from tqdm import tqdm
 from algos.utils import plot_value_and_policy
 
 def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, render=False, log_interval=100):
+    alpha = 0.3 # override for tuning
     Q = defaultdict(lambda: {a: 0.0 for a in Action})
     
     reward_history = []
     success_rate_history = []
     success_count = 0
-    max_steps = 500
+    max_steps = 100
 
     # epsilon decay settings
     initial_epsilon = 1.0
-    min_epsilon = 0.05
-    decay_rate = 0.99
+    min_epsilon = 0.01
+    decay_rate = 0.98
 
     for episode in tqdm(range(episodes), desc="Training Q-Learning"):
         # epsilon decay (initially, high epsilon to encourage exploration)

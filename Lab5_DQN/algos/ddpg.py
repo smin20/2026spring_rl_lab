@@ -34,11 +34,7 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         ########## TODO 1: Actor forward pass ##########
-        # Hint:
-        # - This is like REINFORCE's policy forward pass, but deterministic.
-        # - The actor should return one action vector directly, not mean/std.
-        # - The continuous environment expects each action component in [-1, 1].
-        raise NotImplementedError("TODO 1: implement ActorNetwork.forward")
+        return torch.tanh(self.net(state))
         ########## END TODO 1 ##########
 
 
@@ -62,11 +58,8 @@ class CriticNetwork(nn.Module):
 
     def forward(self, state, action):
         ########## TODO 2: Critic forward pass ##########
-        # Hint:
-        # - Deep SARSA estimates Q from a state and a discrete action index.
-        # - DDPG estimates Q(s, a) from a state vector and a continuous action vector.
-        # - Build one feature tensor from state and action, then pass it to self.net.
-        raise NotImplementedError("TODO 2: implement CriticNetwork.forward")
+        x = torch.cat([state, action], dim=-1)
+        return self.net(x)
         ########## END TODO 2 ##########
 
 
@@ -179,15 +172,17 @@ class DDPGAgent:
         state_norm = np.array(state, dtype=np.float32) / self.state_scale
         state_v = torch.tensor(state_norm, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-        action = None
         ########## TODO 3: Select a continuous action ##########
-        # Hint:
-        # - Use the actor without tracking gradients, just as inference uses no gradients.
-        # - In training mode, add zero-mean Gaussian exploration noise.
-        # - Return a NumPy action clipped to the environment action range.
+        self.actor.eval()
+        with torch.no_grad():
+            action = self.actor(state_v).cpu().numpy()[0]
+        self.actor.train()
+
+        if not eval:
+            noise = np.random.normal(0.0, self.noise_std, size=self.action_dim).astype(np.float32)
+            action = action + noise
+            action = np.clip(action, -1.0, 1.0)
         ########## END TODO 3 ##########
-        if action is None:
-            raise NotImplementedError("TODO 3: implement DDPG action selection")
         return action
 
     def learn(self, state, action, reward, next_state, done=False):
@@ -207,35 +202,30 @@ class DDPGAgent:
         next_states = next_states.to(self.device)
         dones = dones.to(self.device)
 
-        target_q = None
         ########## TODO 4A: Build the critic target ##########
-        # Hint:
-        # - This is the off-policy TD target, similar in spirit to Deep SARSA/DQN.
-        # - Use target networks for the next-state action and next-state value.
-        # - Terminal transitions should not bootstrap from the next state.
+        with torch.no_grad():
+            next_actions = self.target_actor(next_states)
+            next_q = self.target_critic(next_states, next_actions)
+            target_q = rewards + self.gamma * next_q * (1.0 - dones)
         ########## END TODO 4A ##########
-        if target_q is None:
-            raise NotImplementedError("TODO 4A: compute the critic target")
 
-        critic_loss = None
         ########## TODO 4B: Update the critic ##########
-        # Hint:
-        # - Compare the critic's current Q estimate with target_q.
-        # - Use the same optimizer pattern as Deep SARSA and DQN:
-        #   zero gradients, backpropagate loss, then step the optimizer.
-        ########## END TODO 4B ##########
-        if critic_loss is None:
-            raise NotImplementedError("TODO 4B: update the critic")
+        current_q = self.critic(states, actions)
+        critic_loss = nn.MSELoss()(current_q, target_q)
 
-        actor_loss = None
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic_optimizer.step()
+        ########## END TODO 4B ##########
+
         ########## TODO 4C: Update the actor ##########
-        # Hint:
-        # - The actor should choose actions that the critic scores highly.
-        # - Optimizers minimize losses, so convert "maximize Q" into a loss.
-        # - Use the current actor and current critic, not the target networks.
+        predicted_actions = self.actor(states)
+        actor_loss = -self.critic(states, predicted_actions).mean()
+
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor_optimizer.step()
         ########## END TODO 4C ##########
-        if actor_loss is None:
-            raise NotImplementedError("TODO 4C: update the actor")
 
         self._soft_update(self.target_actor, self.actor)
         self._soft_update(self.target_critic, self.critic)
@@ -250,11 +240,8 @@ class DDPGAgent:
 
     def _soft_update(self, target_net, source_net):
         ########## TODO 4D: Soft-update a target network ##########
-        # Hint:
-        # - DQN copied the full online network into the target network sometimes.
-        # - DDPG moves the target network a small fraction toward the online network.
-        # - Math form: target <- (1 - tau) * target + tau * source.
-        raise NotImplementedError("TODO 4D: implement soft target-network update")
+        for target_param, param in zip(target_net.parameters(), source_net.parameters()):
+            target_param.data.copy_(self.tau * param.data + (1.0 - self.tau) * target_param.data)
         ########## END TODO 4D ##########
 
     def reset_episode(self):

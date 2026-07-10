@@ -56,6 +56,7 @@ class REINFORCEAgent:
 		self.log_probs = []
 		self.rewards = []
 		self.entropies = []
+		self.running_baseline = -100.0
 
 	def reset_episode(self):
 		self.log_probs = []
@@ -90,13 +91,18 @@ class REINFORCEAgent:
 			returns.insert(0, G)
 		returns = torch.tensor(returns, dtype=torch.float32, device=self.device)
 		
-		if len(returns) > 1 and returns.std() > 1e-3:
-			returns = (returns - returns.mean()) / (returns.std(unbiased=False) + 1e-9)
+		# running baseline 업데이트 및 baseline subtraction (Advantage 계산)
+		episode_return = returns[0].item()
+		self.running_baseline = 0.99 * self.running_baseline + 0.01 * episode_return
+		advantages = returns - self.running_baseline
+
+		# 그라디언트 스케일을 안정적인 범위로 맞추기 위해 나누어줍니다.
+		advantages = advantages / 100.0
 
 		# policy loss
 		policy_losses = []
-		for log_prob, Gt in zip(self.log_probs, returns):
-			policy_losses.append(-log_prob * Gt)
+		for log_prob, adv in zip(self.log_probs, advantages):
+			policy_losses.append(-log_prob * adv)
 		
 		# entropy bonus
 		entropy_bonus = torch.stack(self.entropies).sum()

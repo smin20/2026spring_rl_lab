@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 
 def sarsa(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, render=False, log_interval=100):
+    alpha = 0.3  # override for tuning
     # Initialize Q-value table: set Q values to 0 for all state-action pairs
     Q = defaultdict(lambda: {a: 0.0 for a in Action})
 
@@ -17,8 +18,8 @@ def sarsa(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, ren
 
     # epsilon decay settings
     initial_epsilon = epsilon
-    min_epsilon = 0.05
-    decay_rate = 0.99
+    min_epsilon = 0.01
+    decay_rate = 0.98
 
     for episode in tqdm(range(episodes), desc="Training SARSA"):
         # Decrease epsilon every episode
